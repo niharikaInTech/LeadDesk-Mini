@@ -15,7 +15,7 @@ function App() {
     function submitLead(e) {
         e.preventDefault();
 
-        axios.post("http://localhost:5000/add-lead", {
+        axios.post("https://leaddesk-mini-backend.onrender.com/add-lead", {
             name: name,
             email: email,
             budget: budget,
@@ -35,7 +35,7 @@ function App() {
     }
 
     function getLeads() {
-        axios.get("http://localhost:5000/leads")
+        axios.get("https://leaddesk-mini-backend.onrender.com")
             .then(function (response) {
                 setLeads(response.data);
             })
@@ -50,7 +50,7 @@ function App() {
     }
 
     function updateStatus(id, status) {
-        axios.put("http://localhost:5000/lead/" + id, {
+        axios.put("https://leaddesk-mini-backend.onrender.com" + id, {
             status: status
         })
         .then(function () {
