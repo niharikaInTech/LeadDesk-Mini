@@ -11,7 +11,7 @@ const port = process.env.PORT || 5000;
 app.use(cors({
     origin: [
         "http://localhost:5173",
-        "https://lead-desk-mini-xi.vercel.app"
+        "https://leaddesk-mini-backend-hmnq.onrender.com"
     ]
 }));
 app.use(express.json());
