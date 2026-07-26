@@ -15,7 +15,7 @@ function App() {
     function submitLead(e) {
         e.preventDefault();
 
-        axios.post("https://leaddesk-mini-backend-hmnq.onrender.com/add-lead", {
+        axios.post("https://leaddesk-mini-backend-hmnq.onrender.com", {
             name: name,
             email: email,
             budget: budget,
