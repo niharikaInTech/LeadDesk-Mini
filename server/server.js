@@ -10,13 +10,9 @@ const Lead = require("./models/Lead");
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Allow frontend requests
 app.use(cors());
-
-// Read JSON data from requests
 app.use(express.json());
 
-// Connect MongoDB
 mongoose.connect(process.env.MONGO_URL)
     .then(function () {
         console.log("MongoDB connected");
@@ -26,7 +22,6 @@ mongoose.connect(process.env.MONGO_URL)
         console.log(error.message);
     });
 
-// Check JWT token before opening admin APIs
 function verifyToken(req, res, next) {
     const authorizationHeader = req.headers.authorization;
 
@@ -61,15 +56,36 @@ function verifyToken(req, res, next) {
     }
 }
 
-// Home route
 app.get("/", function (req, res) {
     res.send("Welcome to LeadDesk Mini Backend");
 });
 
-// Admin login route
 app.post("/login", function (req, res) {
-    const email = req.body.email;
-    const password = req.body.password;
+    const email = String(req.body.email || "")
+        .trim()
+        .toLowerCase();
+
+    const password = String(req.body.password || "");
+
+    const adminEmail = String(
+        process.env.ADMIN_EMAIL || ""
+    )
+        .trim()
+        .toLowerCase();
+
+    const passwordHash = String(
+        process.env.ADMIN_PASSWORD_HASH || ""
+    ).trim();
+
+    const jwtSecret = String(
+        process.env.JWT_SECRET || ""
+    ).trim();
+
+    console.log("Login attempted");
+    console.log("Email configured:", Boolean(adminEmail));
+    console.log("Hash configured:", Boolean(passwordHash));
+    console.log("JWT configured:", Boolean(jwtSecret));
+    console.log("Email matches:", email === adminEmail);
 
     if (!email || !password) {
         return res.status(400).json({
@@ -77,20 +93,22 @@ app.post("/login", function (req, res) {
         });
     }
 
-    if (email !== process.env.ADMIN_EMAIL) {
+    if (!adminEmail || !passwordHash || !jwtSecret) {
+        return res.status(500).json({
+            message: "Admin authentication is not configured correctly"
+        });
+    }
+
+    if (email !== adminEmail) {
         return res.status(401).json({
             message: "Invalid email or password"
         });
     }
 
-    if (!process.env.ADMIN_PASSWORD_HASH) {
-        return res.status(500).json({
-            message: "Admin password is not configured"
-        });
-    }
-
-    bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH)
+    bcrypt.compare(password, passwordHash)
         .then(function (passwordMatches) {
+            console.log("Password matches:", passwordMatches);
+
             if (!passwordMatches) {
                 return res.status(401).json({
                     message: "Invalid email or password"
@@ -102,7 +120,7 @@ app.post("/login", function (req, res) {
                     email: email,
                     role: "admin"
                 },
-                process.env.JWT_SECRET,
+                jwtSecret,
                 {
                     expiresIn: "2h"
                 }
@@ -114,7 +132,7 @@ app.post("/login", function (req, res) {
             });
         })
         .catch(function (error) {
-            console.log(error);
+            console.log("bcrypt error:", error.message);
 
             res.status(500).json({
                 message: "Login failed"
@@ -122,12 +140,11 @@ app.post("/login", function (req, res) {
         });
 });
 
-// Add a new lead
 app.post("/add-lead", function (req, res) {
-    const name = req.body.name;
-    const email = req.body.email;
-    const budget = req.body.budget;
-    const message = req.body.message;
+    const name = String(req.body.name || "").trim();
+    const email = String(req.body.email || "").trim();
+    const budget = String(req.body.budget || "").trim();
+    const message = String(req.body.message || "").trim();
 
     if (!name || !email || !budget || !message) {
         return res.status(400).json({
@@ -165,9 +182,8 @@ app.post("/add-lead", function (req, res) {
         });
 });
 
-// Get all leads - protected route
 app.get("/leads", verifyToken, function (req, res) {
-    const search = req.query.search || "";
+    const search = String(req.query.search || "").trim();
 
     Lead.find({
         $or: [
@@ -198,7 +214,6 @@ app.get("/leads", verifyToken, function (req, res) {
         });
 });
 
-// Update lead status - protected route
 app.put("/lead/:id", verifyToken, function (req, res) {
     const leadId = req.params.id;
     const newStatus = req.body.status;
@@ -245,7 +260,6 @@ app.put("/lead/:id", verifyToken, function (req, res) {
         });
 });
 
-// Start server
 app.listen(port, function () {
     console.log("Server started on port " + port);
 });
