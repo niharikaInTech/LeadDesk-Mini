@@ -1,6 +1,8 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 require("dotenv").config();
 
 const Lead = require("./models/Lead");
@@ -8,12 +10,22 @@ const Lead = require("./models/Lead");
 const app = express();
 const port = process.env.PORT || 5000;
 
+const allowedOrigins = [
+    "http://localhost:5173",
+    process.env.CLIENT_URL
+];
+
 app.use(cors({
-    origin: [
-        "http://localhost:5173",
-        "https://leaddesk-mini-backend-hmnq.onrender.com"
-    ]
+    origin: function (origin, callback) {
+        // Allows Postman, Render health checks and browser requests
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("This website is not allowed by CORS"));
+        }
+    }
 }));
+
 app.use(express.json());
 
 mongoose.connect(process.env.MONGO_URL)
@@ -25,8 +37,91 @@ mongoose.connect(process.env.MONGO_URL)
         console.log(error.message);
     });
 
+function verifyToken(req, res, next) {
+    const authorizationHeader = req.headers.authorization;
+
+    if (!authorizationHeader) {
+        return res.status(401).json({
+            message: "Please login to access the admin dashboard"
+        });
+    }
+
+    const parts = authorizationHeader.split(" ");
+
+    if (parts.length !== 2 || parts[0] !== "Bearer") {
+        return res.status(401).json({
+            message: "Invalid authorization format"
+        });
+    }
+
+    const token = parts[1];
+
+    try {
+        const decodedData = jwt.verify(
+            token,
+            process.env.JWT_SECRET
+        );
+
+        req.admin = decodedData;
+        next();
+    } catch (error) {
+        return res.status(401).json({
+            message: "Your login has expired. Please login again."
+        });
+    }
+}
+
 app.get("/", function (req, res) {
     res.send("Welcome to LeadDesk Mini Backend");
+});
+
+app.post("/login", function (req, res) {
+    const email = req.body.email;
+    const password = req.body.password;
+
+    if (!email || !password) {
+        return res.status(400).json({
+            message: "Email and password are required"
+        });
+    }
+
+    if (email !== process.env.ADMIN_EMAIL) {
+        return res.status(401).json({
+            message: "Invalid email or password"
+        });
+    }
+
+    bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH)
+        .then(function (passwordMatches) {
+            if (!passwordMatches) {
+                return res.status(401).json({
+                    message: "Invalid email or password"
+                });
+            }
+
+            const token = jwt.sign(
+                {
+                    email: email,
+                    role: "admin"
+                },
+                process.env.JWT_SECRET,
+                {
+                    expiresIn: "2h"
+                }
+            );
+
+            res.json({
+                message: "Login successful",
+                token: token
+            });
+        })
+        .catch(function (error) {
+            console.log(error);
+
+            res.status(500).json({
+                message: "Login failed"
+            });
+        });
 });
 
 app.post("/add-lead", function (req, res) {
@@ -38,6 +133,14 @@ app.post("/add-lead", function (req, res) {
     if (!name || !email || !budget || !message) {
         return res.status(400).json({
             message: "Please fill all the fields"
+        });
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailPattern.test(email)) {
+        return res.status(400).json({
+            message: "Please enter a valid email address"
         });
     }
 
@@ -58,31 +161,71 @@ app.post("/add-lead", function (req, res) {
             console.log(error);
 
             res.status(500).json({
-                message: "Something went wrong"
+                message: "Something went wrong while saving the lead"
             });
         });
 });
-app.get("/leads", function (req, res) {
-    Lead.find()
+
+app.get("/leads", verifyToken, function (req, res) {
+    const search = req.query.search || "";
+
+    Lead.find({
+        $or: [
+            {
+                name: {
+                    $regex: search,
+                    $options: "i"
+                }
+            },
+            {
+                email: {
+                    $regex: search,
+                    $options: "i"
+                }
+            }
+        ]
+    })
+        .sort({ createdAt: -1 })
         .then(function (leads) {
             res.json(leads);
         })
-        .catch(function () {
+        .catch(function (error) {
+            console.log(error);
+
             res.status(500).json({
-                message: "Error fetching leads"
+                message: "Unable to fetch leads"
             });
         });
 });
-app.put("/lead/:id", function (req, res) {
+
+app.put("/lead/:id", verifyToken, function (req, res) {
     const leadId = req.params.id;
     const newStatus = req.body.status;
 
+    const allowedStatuses = ["New", "Contacted", "Closed"];
+
+    if (!allowedStatuses.includes(newStatus)) {
+        return res.status(400).json({
+            message: "Invalid lead status"
+        });
+    }
+
     Lead.findByIdAndUpdate(
         leadId,
-        { status: newStatus },
-        { new: true }
+        {
+            status: newStatus
+        },
+        {
+            new: true
+        }
     )
         .then(function (updatedLead) {
+            if (!updatedLead) {
+                return res.status(404).json({
+                    message: "Lead not found"
+                });
+            }
+
             res.json({
                 message: "Status updated successfully",
                 lead: updatedLead
@@ -92,7 +235,7 @@ app.put("/lead/:id", function (req, res) {
             console.log(error);
 
             res.status(500).json({
-                message: "Error updating status"
+                message: "Unable to update lead status"
             });
         });
 });
