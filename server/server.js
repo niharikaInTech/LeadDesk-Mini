@@ -10,24 +10,13 @@ const Lead = require("./models/Lead");
 const app = express();
 const port = process.env.PORT || 5000;
 
-const allowedOrigins = [
-    "http://localhost:5173",
-    process.env.CLIENT_URL
-];
+// Allow frontend requests
+app.use(cors());
 
-app.use(cors({
-    origin: function (origin, callback) {
-        // Allows Postman, Render health checks and browser requests
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error("This website is not allowed by CORS"));
-        }
-    }
-}));
-
+// Read JSON data from requests
 app.use(express.json());
 
+// Connect MongoDB
 mongoose.connect(process.env.MONGO_URL)
     .then(function () {
         console.log("MongoDB connected");
@@ -37,6 +26,7 @@ mongoose.connect(process.env.MONGO_URL)
         console.log(error.message);
     });
 
+// Check JWT token before opening admin APIs
 function verifyToken(req, res, next) {
     const authorizationHeader = req.headers.authorization;
 
@@ -71,10 +61,12 @@ function verifyToken(req, res, next) {
     }
 }
 
+// Home route
 app.get("/", function (req, res) {
     res.send("Welcome to LeadDesk Mini Backend");
 });
 
+// Admin login route
 app.post("/login", function (req, res) {
     const email = req.body.email;
     const password = req.body.password;
@@ -88,6 +80,12 @@ app.post("/login", function (req, res) {
     if (email !== process.env.ADMIN_EMAIL) {
         return res.status(401).json({
             message: "Invalid email or password"
+        });
+    }
+
+    if (!process.env.ADMIN_PASSWORD_HASH) {
+        return res.status(500).json({
+            message: "Admin password is not configured"
         });
     }
 
@@ -124,6 +122,7 @@ app.post("/login", function (req, res) {
         });
 });
 
+// Add a new lead
 app.post("/add-lead", function (req, res) {
     const name = req.body.name;
     const email = req.body.email;
@@ -166,6 +165,7 @@ app.post("/add-lead", function (req, res) {
         });
 });
 
+// Get all leads - protected route
 app.get("/leads", verifyToken, function (req, res) {
     const search = req.query.search || "";
 
@@ -198,11 +198,16 @@ app.get("/leads", verifyToken, function (req, res) {
         });
 });
 
+// Update lead status - protected route
 app.put("/lead/:id", verifyToken, function (req, res) {
     const leadId = req.params.id;
     const newStatus = req.body.status;
 
-    const allowedStatuses = ["New", "Contacted", "Closed"];
+    const allowedStatuses = [
+        "New",
+        "Contacted",
+        "Closed"
+    ];
 
     if (!allowedStatuses.includes(newStatus)) {
         return res.status(400).json({
@@ -240,6 +245,7 @@ app.put("/lead/:id", verifyToken, function (req, res) {
         });
 });
 
+// Start server
 app.listen(port, function () {
     console.log("Server started on port " + port);
 });
