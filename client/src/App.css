@@ -4,13 +4,22 @@
 
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
+    font-family: Arial, Helvetica, sans-serif;
     background: #f4f7fb;
     color: #1f2937;
 }
 
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
+}
+
 .page {
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 .navbar {
@@ -25,14 +34,49 @@ body {
 .logo {
     margin: 0;
     color: #2563eb;
+    font-size: 26px;
 }
 
-.navbar p {
-    margin: 0;
-    color: #6b7280;
+.nav-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.nav-button {
+    display: inline-block;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 7px;
+    background: #2563eb;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.nav-button:hover {
+    background: #1d4ed8;
+}
+
+.secondary-button {
+    background: #e5e7eb;
+    color: #1f2937;
+}
+
+.secondary-button:hover {
+    background: #d1d5db;
+}
+
+.logout-button {
+    background: #dc2626;
+}
+
+.logout-button:hover {
+    background: #b91c1c;
 }
 
 .hero {
+    flex: 1;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 50px;
@@ -41,39 +85,61 @@ body {
 }
 
 .hero-text h2 {
-    font-size: 48px;
+    margin-top: 0;
     margin-bottom: 20px;
+    font-size: 48px;
     line-height: 1.2;
 }
 
 .hero-text p {
+    max-width: 600px;
     font-size: 18px;
     color: #6b7280;
     line-height: 1.7;
 }
 
-.form-card {
+.form-card,
+.login-card {
     background: white;
     padding: 35px;
     border-radius: 14px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-.form-card h3 {
+.form-card h3,
+.login-card h2 {
     margin-top: 0;
-    margin-bottom: 25px;
+    margin-bottom: 24px;
     font-size: 26px;
+}
+
+.form-card label,
+.login-card label {
+    display: block;
+    margin-bottom: 7px;
+    font-size: 14px;
+    font-weight: bold;
 }
 
 .form-card input,
 .form-card select,
-.form-card textarea {
+.form-card textarea,
+.login-card input {
     width: 100%;
     padding: 13px;
     margin-bottom: 16px;
     border: 1px solid #d1d5db;
     border-radius: 8px;
+    background: white;
     font-size: 15px;
+}
+
+.form-card input:focus,
+.form-card select:focus,
+.form-card textarea:focus,
+.login-card input:focus {
+    outline: 2px solid #bfdbfe;
+    border-color: #2563eb;
 }
 
 .form-card textarea {
@@ -81,7 +147,8 @@ body {
     resize: vertical;
 }
 
-.form-card button {
+.form-card button,
+.login-card button {
     width: 100%;
     padding: 14px;
     border: none;
@@ -92,46 +159,78 @@ body {
     cursor: pointer;
 }
 
-.form-card button:hover {
+.form-card button:hover,
+.login-card button:hover {
     background: #1d4ed8;
 }
 
-@media (max-width: 800px) {
-    .hero {
-        grid-template-columns: 1fr;
-        padding-top: 40px;
-    }
-
-    .hero-text h2 {
-        font-size: 36px;
-    }
+.form-card button:disabled,
+.login-card button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
-.nav-button {
-    padding: 10px 18px;
+
+.login-section {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 50px 20px;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 430px;
+}
+
+.login-card p {
+    margin-top: -10px;
+    margin-bottom: 25px;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.dashboard {
+    flex: 1;
+    padding: 50px 8%;
+}
+
+.dashboard h2 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 34px;
+}
+
+.dashboard > p {
+    margin-bottom: 30px;
+    color: #6b7280;
+}
+
+.search-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 25px;
+}
+
+.search-form input {
+    width: 100%;
+    max-width: 420px;
+    padding: 11px 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+}
+
+.search-form button {
+    padding: 11px 18px;
     border: none;
     border-radius: 7px;
     background: #2563eb;
     color: white;
     cursor: pointer;
-    font-size: 14px;
 }
 
-.nav-button:hover {
-    background: #1d4ed8;
-}
-
-.dashboard {
-    padding: 50px 8%;
-}
-
-.dashboard h2 {
-    font-size: 34px;
-    margin-bottom: 8px;
-}
-
-.dashboard p {
-    color: #6b7280;
-    margin-bottom: 30px;
+.search-form .clear-button {
+    background: #6b7280;
 }
 
 .table-container {
@@ -143,6 +242,7 @@ body {
 
 table {
     width: 100%;
+    min-width: 850px;
     border-collapse: collapse;
 }
 
@@ -151,6 +251,7 @@ td {
     padding: 16px;
     border-bottom: 1px solid #e5e7eb;
     text-align: left;
+    vertical-align: top;
 }
 
 th {
@@ -162,6 +263,31 @@ td select {
     padding: 8px;
     border: 1px solid #d1d5db;
     border-radius: 6px;
+    background: white;
+}
+
+.footer {
+    margin-top: auto;
+    padding: 22px;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.footer p {
+    margin: 0;
+}
+
+.footer a {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.footer a:hover {
+    text-decoration: underline;
 }
 
 @media (max-width: 800px) {
@@ -178,7 +304,28 @@ td select {
         font-size: 12px;
     }
 
+    .hero {
+        grid-template-columns: 1fr;
+        padding: 45px 5%;
+    }
+
+    .hero-text h2 {
+        font-size: 36px;
+    }
+
     .dashboard {
-        padding: 30px 5%;
+        padding: 35px 5%;
+    }
+
+    .search-form {
+        flex-direction: column;
+    }
+
+    .search-form input {
+        max-width: none;
+    }
+
+    .search-form button {
+        width: 100%;
     }
 }
